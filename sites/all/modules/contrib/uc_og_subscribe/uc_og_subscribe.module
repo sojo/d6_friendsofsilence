@@ -1,0 +1,307 @@
+<?php
+// $Id: uc_og_subscribe.module,v 1.3 2010/07/16 16:53:38 ezrag Exp $
+
+/**
+ * @file
+ * Allows products to be associated with group memberships.
+ */
+
+
+require_once('uc_og_subscribe.ca.inc');
+
+/**
+ * Implementation of hook_theme().
+ */
+function uc_og_subscribe_theme() {
+  return array(
+    'uc_og_subscribe_group_link_token' => array(
+      'arguments' => array('groups' => NULL),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_product_feature().
+ */
+function uc_og_subscribe_product_feature() {
+  $features[] = array(
+    'id' => 'group_subscribe',
+    'title' => t('Group subscription'),
+    'callback' => 'uc_og_subscribe_feature_form',
+    'delete' => 'uc_og_subscribe_feature_delete',
+    'settings' => 'uc_og_subscribe_feature_settings',
+  );
+
+  return $features;
+}
+
+/**
+ * Form builder for hook_product_feature.
+ */
+function uc_og_subscribe_feature_form($form_state, $node, $feature) {
+  $form = array();
+
+  $result = db_query('SELECT COUNT(nid) FROM {og}');
+
+  if (!db_result($result)) {
+    $form['groups']['message'] = array(
+      '#value' => t('There are no groups to choose from. Please <a href="!url">create a group</a> to continue.', array('!url' => url('node/add'))),
+    );
+    return $form;
+  }
+
+  // Grab all the models on this product.
+  $models = uc_product_get_models($node);
+
+  $groups = uc_og_subscribe_get_groups();
+
+  // Use the feature's values to fill the form, if they exist.
+  if (!empty($feature)) {
+    $subscription = db_fetch_object(db_query("SELECT * FROM {uc_og_subscribe} WHERE pfid = %d", $feature['pfid']));
+
+    $default_feature     = $feature['pfid'];
+
+    $default_model = $subscription->model;
+    $default_group = $subscription->gid;
+    $default_description = $subscription->description;
+
+    $default_is_active = $subscription->is_active;
+    $default_is_admin = $subscription->is_admin;
+  }
+  else {
+    $default_is_active = variable_get('uc_og_subscribe_group_active', 1);
+    $default_is_admin = variable_get('uc_og_subscribe_group_admin', 0);
+  }
+
+  $form['nid'] = array(
+      '#type' => 'value',
+      '#value' => $node->nid,
+  );
+  $form['pfid'] = array(
+    '#type' => 'value',
+    '#value' => $default_feature,
+  );
+  $form['uc_group_model'] = array(
+    '#type' => 'select',
+    '#title' => t('SKU'),
+    '#default_value' => $default_model,
+    '#description' => t('This is the SKU that will need to be purchased to obtain the group subscription.'),
+    '#options' => $models,
+  );
+  $form['uc_group_gid'] = array(
+    '#type' => 'select',
+    '#title' => t('Group name  '),
+    '#default_value' => $default_group,
+    '#options' => $groups,
+    '#description' => t('The group that the user will be subscribed to.'),
+    '#maxlength' => 255,
+  );
+  $form['uc_group_description'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Description'),
+    '#default_value' => $default_description,
+    '#maxlength' => 255,
+    '#description' => t('A description of this group subscription.'),
+  );
+  $form['uc_group_active'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Subscription is active'),
+    '#default_value' => $default_is_active,
+    '#description' => t('Check if this subscription should be active.'),
+  );
+  $form['uc_group_admin'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Subscription is admin'),
+    '#default_value' => $default_is_admin,
+    '#description' => t('Check if this subscription should be an admin for the group.'),
+  );
+  $form['uc_group_retro_add'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Retroactively add users who have purchased this product to the new group.'),
+    '#default_value' => 0,
+    '#description' => t("Users who have already purchased this product will be granted the new group subscription. No notification will be sent."),
+  );
+  return uc_product_feature_form($form);
+}
+
+function uc_og_subscribe_retro_add($form_state = array()) {
+  $group_nid = $form_state['values']['uc_group_gid'];
+  // If SKU is specified, only add users who purchased that SKU, otherwise
+  // add users who purchased any SKU for this product nid.
+  if (!empty($form_state['values']['uc_group_model'])) {
+    $product = $form_state['values']['uc_group_model'];
+    $where = "op.model = '%s'";
+  }
+  else {
+    $product = $form_state['values']['nid'];
+    $where = "op.nid = %d";
+  }
+  $query = db_query("SELECT DISTINCT(o.uid) FROM {uc_orders} o INNER JOIN {uc_order_products} op ON o.order_id = op.order_id LEFT JOIN {og_uid} og ON og.uid=o.uid WHERE $where AND og.uid NOT IN (SELECT uid FROM og_uid WHERE nid = %d)", $product, $group_nid);
+  while ($result = db_fetch_object($query)) {
+    $uids_to_add[] = $result->uid;
+  }
+
+  if (!empty($uids_to_add)) {
+    foreach ($uids_to_add as $key => $uid) {
+      $values[] = $group_nid;
+      $values[] = $uid;
+      $values[] = $form_state['values']['uc_group_active'];
+      $values[] = $form_state['values']['uc_group_admin'];
+      $values[] = time();
+      $values[] = time();
+      db_query("INSERT INTO {og_uid} (nid, uid, is_active, is_admin, created, changed) VALUES (%d, %d, %d, %d, %d, %d)", $values);
+      unset($values);
+    }
+  }
+  $count = count($uids_to_add);
+  drupal_set_message(t("Added @count @users to the group.", array('@count' => $count, '@users' => format_plural($users, 'user', 'users'))));
+}
+/**
+ * Submit handler for uc_og_subscribe_feature_form().
+ */
+function uc_og_subscribe_feature_form_submit($form, &$form_state) {
+  global $user;
+
+  // Build the subscription object from the form values.
+
+  $subscription = array(
+    'pfid' => $form_state['values']['pfid'],
+    'model' => $form_state['values']['uc_group_model'],
+    'gid' => $form_state['values']['uc_group_gid'],
+    'description' => $form_state['values']['uc_group_description'],
+    'is_admin' => $form_state['values']['uc_group_admin'],
+    'is_active' => $form_state['values']['uc_group_active'],
+  );
+
+  // Build product feature descriptions.
+  $description = t('<strong>SKU:</strong> !sku<br />', array('!sku' => empty($subscription['model']) ? 'Any' : filter_xss_admin($subscription['model'])));
+  $title = db_result(db_query('SELECT title FROM {node} WHERE nid = %d', $subscription['gid']));
+  $description .= t('<strong>Group:</strong> !group <br />', array('!group' => filter_xss_admin($title)));
+  $description .= t('<strong>Description:</strong> !desc <br />', array('!desc' => filter_xss_admin($subscription['description'])));
+  $description .= $subscription['is_active'] ? t('<strong>Is active?</strong> Yes <br />') : t('<strong>Is active?</strong> No <br />');
+  $description .= $subscription['is_admin'] ? t('<strong>Is admin?</strong> Yes <br />') : t('<strong>Is admin?</strong> No <br />');
+
+
+  $data = array(
+    'pfid' => $subscription['pfid'],
+    'nid' => $subscription['values']['nid'],
+    'fid' => 'group_subscribe',
+    'type' => t('group'),
+    'description' => $description,
+  );
+
+  // TODO: Pass $data byref so that we can use drupal_write_record within and automatically return the pfid.
+  $form_state['redirect'] = uc_product_feature_save($data);
+
+  // Insert or update uc_og_subscribe table
+  if (empty($subscription['pfid'])) {
+    $subscription['pfid'] = db_last_insert_id('uc_product_features', 'pfid');
+  }
+
+  $key = NULL;
+  if ($fpid = _uc_og_subscribe_get_fpid($subscription['pfid'])) {
+    $key = 'fpid';
+    $subscription['fpid'] = $fpid;
+  }
+  drupal_write_record('uc_og_subscribe', $subscription, $key);
+
+  if ($form_state['values']['uc_group_retro_add']) {
+    uc_og_subscribe_retro_add($form_state);
+  }
+}
+
+/**
+ * Get a fpid from a product feature id.
+ */
+function _uc_og_subscribe_get_fpid($pfid) {
+  return db_result(db_query("SELECT fpid FROM {uc_og_subscribe} WHERE pfid = %d", $pfid));
+}
+
+/**
+ * Return an array of all organic groups keyed by node ID.
+ */
+function uc_og_subscribe_get_groups() {
+  if (!user_access('administer nodes')) {
+    $where = 'WHERE n.status = 1';
+  }
+  $result = db_query(db_rewrite_sql("SELECT og.nid, n.title FROM {og} AS og INNER JOIN {node} AS n ON og.nid = n.nid $where"));
+
+  $groups = array();
+  while ($group = db_fetch_object($result)) {
+    $groups[$group->nid] = $group->title;
+  }
+
+  return $groups;
+}
+
+/**
+ * Product feature delete function.
+ */
+function uc_og_subscribe_feature_delete($feature) {
+  db_query("DELETE FROM {uc_og_subscribe} WHERE pfid = %d", $feature['pfid']);
+}
+
+/**
+ * Implementation of settings from for feature default form.
+ */
+function uc_og_subscribe_feature_settings() {
+  $form = array();
+
+  $form['uc_og_subscribe']['uc_og_subscribe_group_active'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Subscription is active'),
+    '#default_value' => variable_get('uc_og_subscribe_group_active', 1),
+    '#description' => t('Check this to set active as the default.'),
+  );
+  $form['uc_og_subscribe']['uc_og_subscribe_group_admin'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Subscription is admin'),
+    '#default_value' => variable_get('uc_og_subscribe_group_admin', 0),
+    '#description' => t('Check this to set admin as default.'),
+  );
+
+  return $form;
+}
+
+/**
+ * Implementation of hook_token_list().
+ */
+function uc_og_subscribe_token_list($type = 'all') {
+  if ($type == 'uc_og_subscribe_groups') {
+    $tokens['uc_og_subscribe_groups']['group-links'] = t('The list of group(s) the user has been granted access to.');
+  }
+
+  return $tokens;
+}
+
+/**
+ * Implementation of hook_token_values().
+ */
+function uc_og_subscribe_token_values($type, $object = NULL) {
+  switch ($type) {
+    case 'uc_og_subscribe_groups':
+      if (!empty($object)) {
+        $values['group-links'] = theme('uc_og_subscribe_group_link_token', $object);
+      }
+      break;
+  }
+
+  return $values;
+}
+
+/**
+ * Theme group links
+ *
+ * @ingroup themeable
+ */
+function theme_uc_og_subscribe_group_link_token($groups) {
+  $output = '';
+
+  foreach ($groups as $group) {
+    foreach ($group as $key => $value) {
+      $output .= l($value, 'node/'. $key, array('absolute' => TRUE));
+
+    }
+  }
+  return $output;
+}

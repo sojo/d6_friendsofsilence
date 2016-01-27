@@ -1,0 +1,15 @@
+; $Id$
+name = Webform constant contact component
+description = "This module creates a Constant Contact Email component in the Webform module"
+package = Webform
+core = "6.x"
+version = "6.x-1.x"
+php = 4.3.0
+dependencies[] = webform
+dependencies[] = constant_contact
+; Information added by drupal.org packaging script on 2011-09-08
+version = "6.x-1.0-alpha4"
+core = "6.x"
+project = "webform_constant_contact"
+datestamp = "1315501322"
+

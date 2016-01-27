@@ -1,0 +1,98 @@
+; $Id: fusion_tranquil.info 6903 2010-03-23 17:23:54Z jeremy $
+
+name = Fusion Tranquil
+description = Fusion Tranquil sub-theme. Requires <a href="http://drupal.org/project/fusion">Fusion Core</a> and the <a href="http://drupal.org/project/skinr">Skinr</a> module to enable easy point-and-click theming.
+version = 6.x-1.4
+base theme = fusion_core
+core = 6.x
+engine = phptemplate
+
+stylesheets[all][] = css/fusion-tranquil-style.css
+stylesheets[all][] = css/custom.css
+
+scripts[] = js/jquery.corner.js
+scripts[] = js/fusion-tranquil-script.js
+
+regions[sidebar_first] = sidebar first
+regions[sidebar_last] = sidebar last
+regions[header_top] = header top
+regions[header] = header
+regions[preface_top] = preface top
+regions[preface_bottom] = preface bottom
+regions[content_top] = content top
+regions[content] = content
+regions[content_bottom] = content bottom
+regions[postscript_top] = postscript top
+regions[postscript_bottom] = postscript bottom
+regions[footer] = footer
+regions[node_top] = node top
+regions[node_bottom] = node bottom
+
+features[] = logo
+features[] = name
+features[] = slogan
+features[] = node_user_picture
+features[] = comment_user_picture
+features[] = search
+features[] = favicon
+features[] = primary_links
+features[] = secondary_links
+
+; Default theme settings
+settings[theme_grid] = grid16-960
+settings[theme_grid_options][] = grid16-960
+settings[theme_grid_options][] = grid16-fluid
+settings[fluid_grid_width] = fluid-100
+settings[theme_font_size] = font-size-12
+settings[sidebar_layout] = sidebars-split
+settings[sidebar_first_width] = 4
+settings[sidebar_last_width] = 4
+
+; Inherit Skinr styles from parent themes
+skinr[options][inherit_skins] = true
+
+; Disable 12 column grid block widths inherited from fusion_core
+skinr[grid12-width] =
+
+; Tranquil General Styles
+skinr[tranquil-general-styles][title] = Tranquil General Styles
+skinr[tranquil-general-styles][type] = radios
+skinr[tranquil-general-styles][features][] = block
+skinr[tranquil-general-styles][features][] = panels_display
+skinr[tranquil-general-styles][features][] = panels_pane
+skinr[tranquil-general-styles][features][] = panels_panel
+skinr[tranquil-general-styles][features][] = views_view
+skinr[tranquil-general-styles][description] = Rounded corners, block title backgrounds and background styles.
+skinr[tranquil-general-styles][options][1][label] = <span class="preview-text">Light green background with big title <span class="preview-icon" id="tranquil-lightgreenbg-bigtitle-skinrpreview"></span></span>
+skinr[tranquil-general-styles][options][1][class] = tranquil-lightgreenbg-bigtitle
+skinr[tranquil-general-styles][options][2][label] = <span class="preview-text">Light green background with green bullets <span class="preview-icon" id="tranquil-lightgreenbg-skinrpreview"></span></span>
+skinr[tranquil-general-styles][options][2][class] = tranquil-lightgreenbg tranquil-list-arrow
+skinr[tranquil-general-styles][options][3][label] = <span class="preview-text">Light green title background <span class="preview-icon" id="tranquil-lightgreen-title-skinrpreview"></span></span>
+skinr[tranquil-general-styles][options][3][class] = tranquil-lightgreen-title tranquil-border-rounded-corners rounded-corners
+skinr[tranquil-general-styles][options][4][label] = <span class="preview-text">Dark teal title background <span class="preview-icon" id="tranquil-darkteal-title-skinrpreview"></span></span>
+skinr[tranquil-general-styles][options][4][class] = tranquil-darkteal-title tranquil-border-rounded-corners rounded-corners
+skinr[tranquil-general-styles][options][5][label] = <span class="preview-text">Peach title background <span class="preview-icon" id="tranquil-peach-title-skinrpreview"></span></span>
+skinr[tranquil-general-styles][options][5][class] = tranquil-peach-title tranquil-border-rounded-corners rounded-corners
+skinr[tranquil-general-styles][options][6][label] = <span class="preview-text">Translucent white background overlay with big title <span class="preview-icon" id="tranquil-whitebg-bigtitle-skinrpreview"></span></span>
+skinr[tranquil-general-styles][options][6][class] = tranquil-whitebg-bigtitle
+
+; Tranquil - List and image styles
+skinr[tranquil-listimage-styles][title] = Tranquil - List and image styles
+skinr[tranquil-listimage-styles][type] = checkboxes
+skinr[tranquil-listimage-styles][features][] = block
+skinr[tranquil-listimage-styles][features][] = node
+skinr[tranquil-listimage-styles][features][] = panels_display
+skinr[tranquil-listimage-styles][features][] = panels_pane
+skinr[tranquil-listimage-styles][features][] = panels_panel
+skinr[tranquil-listimage-styles][features][] = views_view
+skinr[tranquil-listimage-styles][description] = Different styles for title backgrounds
+skinr[tranquil-listimage-styles][options][1][label] = <span class="preview-text">Image with border <span class="preview-icon" id="tranquil-image-border-skinrpreview"></span></span>
+skinr[tranquil-listimage-styles][options][1][class] = tranquil-image-border
+skinr[tranquil-listimage-styles][options][2][label] = <span class="preview-text">List with blue arrows <span class="preview-icon" id="tranquil-list-arrow-blue-skinrpreview"></span></span>
+skinr[tranquil-listimage-styles][options][2][class] = tranquil-list-arrow-blue
+
+; Information added by fusiondrupalthemes.com packaging script on 2012-02-15
+project = fusion_tranquil
+datestamp = 1329349204
+project status url = http://updates.fusiondrupalthemes.com/release-history
+

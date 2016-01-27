@@ -1,0 +1,11 @@
+name = Views Rotator
+description = Provides a rotating item views display plugin.
+package = Views
+core = 6.x
+dependencies[] = views
+; Information added by drupal.org packaging script on 2013-10-19
+version = "6.x-1.x-dev"
+core = "6.x"
+project = "views_rotator"
+datestamp = "1382165041"
+

@@ -1,0 +1,3 @@
+<?php
+
+include_once('photo_feature.features.inc');

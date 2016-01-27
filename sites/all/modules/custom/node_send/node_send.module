@@ -1,0 +1,84 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Send a Node using Rules
+ *
+ */
+
+
+function node_send_preprocess_node(&$variables) {
+  $node = $variables['node'];
+  if($node->type == 'lesson'){
+    $output = '<div id="node-send">';
+    $output .= drupal_get_form('node_send_form');
+    $output .= '</div>';
+    $variables['node_send'] = $output;
+    
+    $variables['group_send'] = NULL;  
+    global $user;
+    if (!empty($user->uid)) {
+      if (in_array('editor', $user->roles) || in_array('administrator', $user->roles)) {
+        $groupsend = '<div id="node-send-group">';
+        $groupsend .= drupal_get_form('node_send_group_form');
+        $groupsend .= '</div>';
+        $variables['group_send'] = $groupsend;
+      }
+    }
+  }
+}
+
+
+/**
+ * Define the Basic Form
+ */
+function node_send_form() {
+
+  $forms['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Re-Send Via Email'),
+  );
+  
+  return $forms;
+}
+
+/**
+ * SEnd to entire group
+ */
+function node_send_group_form() {
+
+  $forms['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('E-Mail To Group'),
+  );
+  
+  return $forms;
+}
+
+
+/**
+ * Send node to acting user
+ */
+
+function node_send_form_submit($form, $form_state){
+  global $user;
+  $arg1 = arg(1);
+  $node = node_load($arg1);
+  rules_invoke_event('node_send_email_node', array('sender' => &$user, 'node' => &$node));
+}
+
+/**
+ * Send to whole group during submit
+ */
+
+function node_send_group_form_submit($form, $form_state){
+  global $user;
+  $arg1 = arg(1);
+  $node = node_load($arg1);
+  //trigger rule
+  rules_invoke_event('node_send_email_group', array('node' => &$node, 'sender' => &$user));
+}
+
+
+

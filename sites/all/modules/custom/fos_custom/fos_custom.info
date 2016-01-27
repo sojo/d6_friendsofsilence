@@ -1,0 +1,6 @@
+; $Id $
+name = FOS Custom
+description = Custom Functions for Friends of Silence
+package = Custom
+version = "1.0"
+core = 6.x

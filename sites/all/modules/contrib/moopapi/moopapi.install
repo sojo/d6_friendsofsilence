@@ -1,0 +1,14 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Moopapi module.
+ */
+
+function moopapi_enable() {
+  // @todo Abstract it.
+  db_query('UPDATE {system} s SET weight = -1000 WHERE name = "moopapi"');
+  // To turn on autoload magic we must flush all caches after enabling a
+  // module that utilizes autoloading.
+  drupal_flush_all_caches();
+}

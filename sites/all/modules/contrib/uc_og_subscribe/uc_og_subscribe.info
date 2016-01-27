@@ -1,0 +1,14 @@
+;$Id: uc_og_subscribe.info,v 1.1 2009/09/25 17:56:09 ezrag Exp $
+name = Ubercart Organic Group subscribe
+description = Creates a conditional action that subscribes the user to the organic groups ordered
+dependencies[] = og
+dependencies[] = uc_product
+dependencies[] = uc_order
+core = 6.x
+
+; Information added by drupal.org packaging script on 2010-07-16
+version = "6.x-1.0"
+core = "6.x"
+project = "uc_og_subscribe"
+datestamp = "1279299309"
+

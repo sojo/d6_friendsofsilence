@@ -1,0 +1,3 @@
+Updated submitted by text and styling for comments to work with other  
+'submitted by' modules.
+

@@ -1,0 +1,82 @@
+<?php
+// $Id: uc_og_subscribe.install,v 1.1 2009/09/25 17:56:09 ezrag Exp $
+
+/**
+ * @file
+ * Allows products to be associated with group memberships.
+ */
+
+/**
+ * Implementation of hook_schema().
+ */
+function uc_og_subscribe_schema() {
+  $schema['uc_og_subscribe'] = array(
+    'description' => t('TODO: please describe this table!'),
+    'fields' => array(
+      'fpid' => array(
+        'description' => t('TODO: please describe this field!'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'pfid' => array(
+        'description' => t('TODO: please describe this field!'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'model' => array(
+        'description' => t('TODO: please describe this field!'),
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'description' => array(
+        'description' => t('TODO: please describe this field!'),
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'gid' => array(
+        'description' => t('TODO: please describe this field!'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'is_active' => array(
+        'description' => t('TODO: please describe this field!'),
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'is_admin' => array(
+        'description' => t('TODO: please describe this field!'),
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('fpid'),
+    'indexes' => array(
+      'pfid' => array('pfid'),
+      'model' => array('model'),
+    ),
+  );
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function uc_og_subscribe_install() {
+  drupal_install_schema('uc_og_subscribe');
+}
+
+/**
+ * Implementation hof hook_uninstall().
+ */
+function uc_og_subscribe_uninstall() {
+  drupal_uninstall_schema('uc_og_subscribe');
+}

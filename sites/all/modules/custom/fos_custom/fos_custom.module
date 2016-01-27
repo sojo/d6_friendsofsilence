@@ -1,0 +1,168 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Custom Functions
+ */
+ 
+ function fos_custom_menu_alter(&$items) {
+	 $items['og/users/%node/faces']['access callback'] = FALSE;
+ }
+ 
+ function fos_custom_link_alter(&$links, $node, $comment = NULL) {
+  if($node->type == 'quotation') {
+    //change notification subscription text
+    if($links['notifications_0']['title'] == 'Subscribe to: Posts of type Quotation') {
+      $links['notifications_0']['title'] = t('Get Daily Quotation E-mails');
+    }
+    
+  }
+  if($node->type == 'event') {
+		unset($links['calendar_link']);
+  }
+ }
+ 
+ /*
+ * Implementation of hook_form_alter
+ */
+ 
+function fos_custom_form_alter(&$form, $form_state, $form_id) {
+  switch ($form_id) {
+  	case 'notifications_form_subscribe_confirm':
+    	if(arg(0) == 'notifications' && arg(5) == 'quotation') {
+      	//alter the subscription page for quotes
+      	$form['send_interval']['#type'] = 'hidden';
+      	$form['send_method']['#type'] = 'hidden';
+      	$form['info']['#title'] = '';
+      	$form['info']['#value'] = '';
+      	$form['info']['#description'] = 'Click to confirm that you want to subscribe to quotations from Friends of Silence.  You can manage your own notifications preferences by editing your user account settings';
+    	}
+    	break;
+  	
+  	case 'newsletter_node_form':	
+ 	  	$form['attachments']['#collapsed'] = FALSE; 
+			break;  
+
+  	case 'quotation_node_form':
+ 	  	$form['author']['#collapsed'] = FALSE; 
+			break;
+			
+	  case 'profile_node_form':
+	    $form['field_profile_location'][0]['#after_build'][] = 'fos_custom_alter_location_form';
+	    break;		  
+		
+		case 'uc_product_add_to_cart_form_2202':
+			$form['donate_amount']['#default_value'] = '';
+			$form['donate_amount']['#description'] = 'Please enter the amount that you would like to donate.';
+			break;
+		
+		case 'user_profile_form':
+			$form['contact']['contact']['#description'] = 'Allow other users to contact you by e-mail via your personal contact form. Note that while your e-mail address is not made public to other members of the community, privileged users such as site administrators are able to contact you even if you choose not to enable this feature.';
+			$form['contact']['#weight'] = -9;
+			break;
+		case 'contribution_node_form':
+			$batch_no = db_result(db_query("select max(field_contribution_batch_no_value) from content_type_contribution"));
+			$item_no = db_result(db_query("select max(field_contribution_item_no_value) from content_type_contribution where field_contribution_batch_no_value = %d", $batch_no));
+			$form['field_contribution_batch_no'][0]['#default_value']['value'] = $batch_no;
+			$form['field_contribution_item_no'][0]['#default_value']['value'] = $item_no + 1;
+			break;
+  }
+}
+
+function fos_custom_alter_location_form($element, &$form_state) {
+  $element['#title'] = 'Address Information';
+  $element['street']['#title'] = 'Address 1';
+  $element['additional']['#title'] = 'Address 2';
+  return ($element);
+}
+
+function fos_custom_og_links_alter(&$links, $group_node) {
+  $discussion_link = '<a href="/classes/' . $group_node->nid . '/forum">Class Discussions</a>';
+	$subscribers_link = str_replace('/faces', '', $links['subscribers']);
+	unset($links['manager']);
+	unset($links['my_membership']);
+	$links['subscribers'] = $subscribers_link;
+	$links['my_discussions'] = $discussion_link;
+	if ($group_node->nid == 21247) {
+		unset($links['subscribers']);
+		unset($links['my_discussions']);
+	}
+}
+
+ /*
+ * Implementation of hook_block
+ */
+
+
+function fos_custom_block($op = 'list', $delta = 0, $edit = array()) {
+ 	switch ($op) {
+ 	  case 'list':
+ 		 	$blocks[0]['info'] = t('Quotation Count');
+		 	$blocks[0]['cache'] = BLOCK_NO_CACHE;
+	 		return $blocks;
+ 	  case 'view':
+ 			if ($delta == 0) { //SUBSCRIBE TODAY, only logged out users
+     		$qry = "select count(n.nid) from {node} n where n.type = 'quotation'";
+     		$quotation_cnt = db_result(db_query($qry));
+     		$qry2 = "select min(n.created) from node n where n.type = 'quotation'";
+     		$newsletter_date = db_result(db_query($qry2));
+     		
+     		$block['subject'] = t('Quotation Count Down');
+    		$block['content'] = '<p><strong>' . $quotation_cnt . '</strong> quotations and growing!</p><p>Friends of Silence quotations and newsletters on silence and the contemplative path are available online from ' . date('F Y', $newsletter_date) . ' through the current issue.  Our goal is to get all the Friends of Silence Newsletters online, beginning with the first issue in 1988!</p>';
+ 			} 
+ 			return $block;
+	}
+}
+
+function fos_custom_webform_submission_insert($node, $submission) {
+	if ($node->nid == 3506) {
+		$first_name = $submission->data[12][value][0];
+		$last_name =  $submission->data[13][value][0];
+		$address1 =  $submission->data[2][value][0];
+		$address2 =  $submission->data[3][value][0];
+		$city =  $submission->data[4][value][0];
+		$state =  $submission->data[5][value][0];
+		$zip =  $submission->data[6][value][0];
+		$country =  $submission->data[6][value][0];
+		$email =      $submission->data[15][value][0];
+		$subscribe =  $submission->data[16][value][0];
+		if ($subscribe > '' && email > '') {
+			$lists = array();
+			$fields = array();
+			$lists[0] = 13;
+			$lists[1] = 10;
+			$fields[FirstName] = $first_name;
+			$fields[LastName] = $last_name;
+			$fields[EmailType] = 'HTML';
+			$fields[Addr1] = $address1;
+			$fields[Addr2] = $address2;
+			$fields[City] = $city;
+			$fields[StateName] = $state;
+			$fields[PostalCode] = $zip;
+			$fields[CountryName] = $country;
+			$cc = constant_contact_create_object();
+			$contact = $cc->query_contacts($email);
+			if (!$contact) {
+				$status = $cc->create_contact($email, $lists, $fields);
+			}
+		}
+	}
+}
+
+function fos_custom_menu () {
+  $items['api/random_quote'] = array(
+    'title' => 'Random Quote',
+    'page callback' => 'fos_custom_random_quote',
+    'access callback' => TRUE,
+  );
+	return $items;
+}
+
+function fos_custom_random_quote() {
+	
+  $qry = "SELECT r.body AS quote, q.field_quotation_bi_line_value AS author FROM node n  LEFT JOIN node_revisions r ON n.vid = r.vid LEFT JOIN content_type_quotation q ON n.vid = q.vid WHERE (n.status = 1) AND (n.type in ('quotation')) ORDER BY RAND() ASC LIMIT 1";
+	$result = db_query($qry);	
+	drupal_json($result);
+	exit;
+}

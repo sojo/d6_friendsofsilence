@@ -1,0 +1,33 @@
+<?php
+// $Id: uc_cod.install,v 1.2.2.6 2008/11/07 21:13:27 islandusurper Exp $
+function uc_add_donation_schema() { 
+  $schema = array();
+  $schema['uc_add_donation'] = array(
+    'fields' => array(
+      'order_id' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'donation' => array(
+        'type' => 'int',
+        'size' => 'small',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      )     
+    ),
+    'primary key' => array('order_id'),
+  );
+  return $schema;   
+}
+
+function uc_add_donation_install() {
+  drupal_install_schema('uc_add_donation');
+}
+
+function uc_add_donation_uninstall() {
+  drupal_uninstall_schema('uc_add_donation');
+  db_query("DELETE FROM {variable} WHERE name LIKE 'uc_add_donation%%'");
+}

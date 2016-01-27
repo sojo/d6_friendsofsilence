@@ -1,0 +1,12 @@
+name = Send tracking
+description = Activity tracking (open, click, etc.) for send deliveries.
+package = Send API
+dependencies[] = send
+core = 6.x
+
+; Information added by drupal.org packaging script on 2012-08-09
+version = "6.x-1.0-beta1"
+core = "6.x"
+project = "send"
+datestamp = "1344530930"
+

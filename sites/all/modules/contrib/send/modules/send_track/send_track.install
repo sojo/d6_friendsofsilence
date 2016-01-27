@@ -1,0 +1,194 @@
+<?php
+
+/**
+ * @file
+ *
+ * Install/uninstall functions for the Send tracking module.
+ */
+
+function send_track_schema() {
+  $schema = array(
+    'send_track' => array(
+      'description' => t('Tracking data for all send activity'),
+      'fields' => array(
+        'stid' => array(
+          'description' => t('The primary identifier for a tracked activity'),
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ),
+        'srid' => array(
+          'description' => t('The send recpient id'),
+          'type' => 'int',
+          'unsigned' => TRUE,
+        ),
+        'activity' => array(
+          'description' => t('The tracked activity (e.g. open, track, etc.'),
+          'type' => 'varchar',
+          'length' => 100,
+        ),
+        'first' => array(
+          'description' => t('Whether this activity is unique to this recipient.'),
+          'type' => 'int',
+          'length' => 'tiny',
+        ),
+        'hostname' => array(
+          'description' => t('The IP address of the user being tracked.'),
+          'type' => 'varchar',
+          'length' => 128,
+        ),
+        'timestamp' => array(
+          'description' => t('The activity timestamp'),
+          'type' => 'int',
+        ),
+        'path' => array(
+          'description' => t('The URL or path of the activity.'),
+          'type' => 'varchar',
+          'length' => 255,
+        ),
+      ),
+      'primary key' => array('stid'),
+    ),
+    'send_track_link' => array(
+      'description' => t('Store links used for click-thru'),
+      'fields' => array(
+        'stlid' => array(
+          'description' => t('The primary identifier for a tracked link'),
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ),
+        'url' => array(
+          'description' => t('The full URL of a tracked link'),
+          'type' => 'text',
+        ),
+        'local' => array(
+          'description' => t('Is this link local to the site?'),
+          'type' => 'int',
+          'size' => 'tiny',
+        ),
+        'hash' => array(
+          'description' => t('A randomized hash for referencing the link.'),
+          'type' => 'varchar',
+          'length' => 32,
+        ),
+      ),
+      'primary key' => array('stlid'),
+    ),
+  );
+  return $schema;
+}
+
+function send_track_install() {
+  drupal_install_schema('send_track');
+}
+
+function send_track_uninstall() {
+  drupal_uninstall_schema('send_track');
+}
+
+/**
+ * Add the unique column to the send_track table.
+ */
+function send_track_update_6001(&$sandbox) {
+  if (!isset($sandbox['progress'])) {
+    $sandbox['progress'] = 0;
+    $sandbox['current_stid'] = 0;
+    $sandbox['max'] = db_result(db_query("SELECT COUNT(1) FROM {send_track} INNER JOIN {send_recipient} USING ( srid )"));
+  }
+
+  $ret = array();
+  $schema = drupal_get_schema(NULL, TRUE);
+  $table = 'send_track';
+  if (!db_column_exists($table, 'first')) {
+    db_add_field($ret, $table, 'first', array('type' => 'int', 'length' => 'tiny'));
+  }
+
+  $res = db_query("SELECT st.*, sr.contact_count
+    FROM {send_track} st 
+    INNER JOIN {send_recipient} sr USING ( srid )
+    WHERE stid > %d ORDER BY stid ASC LIMIT 50", $sandbox['current_stid']);
+
+  while ($row = db_fetch_object($res)) {
+
+    // Set uniqueness.
+    $sql = "SELECT 1 FROM {send_track} 
+      WHERE first = 1 AND activity = '%s' AND srid = %d";
+    $args = array($row->activity, $row->srid);
+
+    // If this recipient represents more than 1 person, count unique by IP.
+    if ($row->contact_count > 1) {
+      $sql .= " AND hostname = '%s'";
+      $args[] = $row->hostname;
+    }
+    $first = (int) !(bool) db_result(db_query($sql, $args));
+
+    db_query("UPDATE {send_track} SET first = %d WHERE stid = %d", $first, $row->stid);
+    $sandbox['progress']++;
+    $sandbox['current_stid'] = $row->stid;
+  }
+
+  $ret['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress'] / $sandbox['max']);
+  return $ret;
+}
+
+/**
+ * Update open and click columns to use appropriate lengths.
+ */
+function send_track_update_6002(&$sandbox) {
+  $ret = array();
+
+  // Reset the schema cache.
+  $schema = drupal_get_schema(NULL, TRUE);
+  $table = 'send_recipient';
+  foreach (array('open', 'click') as $field) {
+    $spec = $schema[$table]['fields'][$field];
+    db_change_field($ret, $table, $field, $field, $spec);
+  }
+  return $ret;
+}
+
+/**
+ * Batch update the aggregate totals for send_recipient tracking.
+ */
+function send_track_update_6003(&$sandbox) {
+  module_load_include('track.inc', 'send_track', 'includes/send_track');
+
+  if (!isset($sandbox['progress'])) {
+    $sandbox['progress'] = 0;
+    $sandbox['current_srid'] = 0;
+    $sandbox['max'] = db_result(db_query("SELECT COUNT(DISTINCT(srid)) FROM {send_track}"));
+    $sandbox['activities'] = array();
+
+    $res = db_query("SELECT DISTINCT(activity) FROM {send_track}");
+    while ($activity = db_result($res)) {
+      $sandbox['activities'][] = $activity;
+    }
+  }
+
+  $res = db_query("SELECT DISTINCT(srid) FROM {send_track}
+    WHERE srid > %d ORDER BY srid ASC LIMIT 100", $sandbox['current_srid']);
+
+  while ($recipient = db_fetch_object($res)) {
+    foreach ($sandbox['activities'] as $activity) {
+      send_track_aggregate($recipient, $activity);
+    }
+    $sandbox['progress']++;
+    $sandbox['current_srid'] = $recipient->srid;
+  }
+
+  $ret['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress'] / $sandbox['max']);
+  return $ret;
+}
+
+/**
+ * Add the send_track_link table.
+ */
+function send_track_update_6004(&$sandbox) {
+  $ret = array();
+  if (!db_table_exists('send_track_link')) {
+    $schema = drupal_get_schema(NULL, TRUE);
+    db_create_table($ret, 'send_track_link', $schema['send_track_link']);
+  }
+  return $ret;
+}

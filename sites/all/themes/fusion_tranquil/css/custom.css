@@ -1,0 +1,203 @@
+/* Custom Theme CSS for Friends of Silence Site */
+
+.caption{}
+
+.image-caption {
+	text-align: center;
+	background-color:#eee;
+	padding: 5px;
+}
+
+#node-send form {
+	margin-bottom: 5px;
+}
+
+h2.title a {
+	font-weight: normal;
+	font-size: 125%;
+	line-height: 125%;
+}
+
+div.home-page div.node-type-quotation {
+	border-bottom: 1px solid #e3e3cc;
+}
+
+div.node-blog-inner {
+	border-bottom: 1px solid #e3e3cc;
+}
+
+body.full-node .node-blog-inner {
+   padding: 14px;
+}
+
+div.node div.meta div.biline {
+	font-size:100%;
+	font-weight:bold;
+}
+
+.full-node .terms {
+border: 0;
+padding-top: 0px;
+}
+
+.node-inner .content ul.pager li	{
+	background: transparent;
+	padding: 0px;
+}
+
+.node-inner .content ul.pager li.pager-current {
+background:url("../images/pager-bg.png") no-repeat scroll left top transparent;
+border:medium none;
+color:#E76D00;
+padding:8px 12px;
+}
+
+li a.active	{
+	color: #34424D;
+}
+
+.views-view-grid td {
+	vertical-align:top;
+}
+
+
+#view-id-taxonomy_term-page .views-row,
+#view-id-frontpage-page .views-row 	{
+	border-bottom: 1px solid #ccc;
+	padding-top: 20px;
+}
+
+body.node-type-newsletter .node-inner .views-row  	{
+	border-bottom: 1px solid #ccc;
+}
+
+
+#view-id-taxonomy_term-page div.node	{
+	margin-bottom: 20px;
+}
+
+#view-id-taxonomy_term-page	{
+	margin-bottom: 20px;
+}
+
+.field-field-quotation-bi-line	{
+	margin-bottom: 15px;
+	font-size: .9em;
+	font-style: italic;
+}
+
+.field-field-event-subtitle {
+	margin-bottom: 15px;
+	font-size: 133%;
+}
+
+h3.location-locations-header {
+color: black;
+display:inline;
+font-weight:bold;
+font-size: 100%;
+margin:0;
+padding: 0;
+color: #525151;
+}
+
+.jump-quickly .button-wrapper	{
+	display: none;
+}
+
+
+.header-site-info-inner 	{
+	padding: 0px;
+}
+
+#account-nav	{
+	text-align: right;
+	padding-right: 10px;
+}
+
+/* calendars */
+
+.calendar-calendar td .inner div.calendar div, 
+.calendar-calendar td .inner div.calendar div a	{
+	background: transparent;
+	padding-bottom: 5px;
+}
+
+.calendar-calendar	.view-field	{
+	line-height: 1em;
+
+}
+
+/* photo galleries */
+
+.node-type-photogallery .views-field-title	{
+	font-weight: bold;
+	margin-bottom: 3px;
+	font-size: 1.1em;
+}
+
+.node-type-photogallery .views-field-field-image-fid-1	{
+	font-size: .9em;
+}
+
+.view-id-photogallery .teaser .views-field-field-image-fid	{
+	float: left;
+	margin-right: 20px;
+	margin-bottom: 20px;
+}
+
+/* quotations */
+
+body.full-node .view-newsletters .node	{
+	border: 0px;
+}
+
+/* Homepage Rotator */
+
+#block-views-homefeature-block_1,
+#view-id-homefeature-page_1	{
+	height: 200px;
+	overflow: hidden;
+}
+
+/* Classes  */
+
+.class-lessons .views-row .node {
+  border: 0px;
+  padding: 0px;
+  margin: 10px 0px 20px 0px;
+  padding-top: 10px;
+  border-top: 2px solid #ccc;
+}
+
+.product-info .uc-price-display {
+    font-size: 200%;
+}
+
+#unpublished-lessons {
+	margin-top: 10px;
+}
+
+.group-profile-privacy-level legend,
+.location legend {
+  font-weight: bold;
+}
+
+#edit-jump-wrapper select {
+	width: 14em;
+}
+
+#edit-field-profile-location-0-delete-location-wrapper {
+	display:none;
+}
+
+li.calendar_link {
+	display:none;
+}
+
+div.amazon-item div {
+  padding-left: 0em;
+  padding-bottom: 1em;
+  margin-left: 0px;
+  height: 4em;
+}

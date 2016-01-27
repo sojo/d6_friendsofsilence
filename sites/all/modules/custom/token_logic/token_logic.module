@@ -1,0 +1,163 @@
+<?php
+/**
+ * @file
+ * The Token Logic module.
+ *
+ * The Token logic module allows for basic branching/conditionals based on tokens.
+ * Currently it supports if statements with a single comparison, either [equals] or [notequals]
+ * However, this comparison can contain as many tokens as the user wants, so ands can be achieved this way,
+ * and ors can be done through duplicating the statement.
+ * If statements can be nested within the [then]...[endif] portion but not within the [if]...[then] portion.
+ * Example: [if][type][equals]story[then]This is a story[endif]
+ *
+ * @ingroup token
+ */
+
+/**
+ * Implementation of hook_help()
+ */
+function token_logic_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#token_logic':
+      $output = '<p>'. t('This module enables conditional segments of messages in conjunction with the default token module when implemented by other modules. '.
+                  'For instance, in the messaging module it allows you to store differentiated messages depending on any information available to tokens, such as '.
+                  'saying "Once upon a time a new story node was added entitled [title]" for stories and something different for all other node types. ') .'</p>';
+      $output .=  '<p>'. t('To make use of it you just need to create simple if statements using the 5 available logic tokens. For instance:') .'</p>';
+      $output .=  '<p>'. t('[if][type][equals]story[then]Once upon a time [author-name] told a story[endif]') .'<BR>'. t('[if][node-type][notequals]story[then]Someone posted something[endif]<BR>') .'</p>';
+      $output .=  '<p>'. t('Behavior should generally conform to expectations: tokens can be present in any of the three parts of the statement (before the comparison operator, afterwards, and in the body), and if statements can also be nested inside the body of other if statements. Tokens inside the conditional will be evaluated when parsing the logic: this is the main feature. Tokens inside the body are left intact, so that once this module is finished the result can be passed to the default token module which will be able to handle it correctly.') .'</p>';
+      $output .=  '<p>'. t('Adding token_logic support to modules that support tokens is very straightforward, because they both require you to provide the exact same arguments. The following example from messaging can probably be copied verbatim (assuming an array of token objects has already been filled properly):') .'</p>';
+      $output .=  "<p>if (module_exists('token_logic')) {<BR>
+                   \$text = token_logic_replace_multiple(\$text, \$objects);<BR>
+                   }<BR>
+                   \$text = token_replace_multiple(\$text, \$objects);</p>";
+      return $output;
+  }
+}
+
+/**
+ * Implementation of hook_token_list()
+ */
+function token_logic_token_list($type = 'all') {
+  if ($type == 'logic' || $type == 'all') {
+    $tokens['logic']['if'] = t('Allows for conditional content based on tokens. Use in form [if][user-id][equals]2[then]stufftooutput[endif]. See <a href="@tokenhelp">help text</a>.', array('@tokenhelp' => url('/admin/help/token_logic')));
+    $tokens['logic']['then'] = t('Separates condition from action in if statement. Use in conjunction with the if token to create conditional content through tokens.');
+    $tokens['logic']['equals'] = t('Comparison operator in condition. Use in conjunction with the if token to create conditional content through tokens.');
+    $tokens['logic']['notequals'] = t('Comparison operator in condition. Use in conjunction with the if token to create conditional content through tokens.');
+    $tokens['logic']['endif'] = t('Ends if statement. Use in conjunction with the if token to create conditional content through tokens.');
+  }
+  return $tokens;
+}
+
+/**
+ * Return the value of $original, with all logic parsed out. Tokens in the
+ * sections to be displayed will remain, as the output is meant to be subsequently
+ * passed through the base Token module's replace function.
+ * The external function does both logic replacement and token replacement, whilst
+ * the internal one returns the string with standard tokens intact.
+ * @param original
+ *  A string, or an array of strings, to perform token substitutions
+ *  on.
+ * @param types
+ *   An array of substitution classes and optional objects. The key is
+ *   a flag indicating the class of substitution tokens to use.
+ *   If an object is passed as value, the key should contain the
+ *   object's type. For example, 'node', 'comment', or 'user'. The
+ *   object will be used for building substitution values. If no type
+ *   is specified, only 'global' site-wide substitution tokens are built.
+ * @param leading
+ *    Character(s) to prepend to the token key before searching for
+ *    matches. Defaults to an open-bracket.
+ * @param trailing
+ *    Character(s) to append to the token key before searching for
+ *    matches. Defaults to a close-bracket.
+ * @return The modified version of $original, with all substitutions
+ *   made.
+ */
+function token_logic_replace_multiple($original, $types = array('global' => NULL), $leading = '[', $trailing = ']', $options = array()) {
+  $text = _token_logic_replace_multiple($original, $types, $leading, $trailing, $options);
+  return token_replace_multiple($text, $types, $leading, $trailing, $options);
+}
+
+function _token_logic_replace_multiple($original, $types = array('global' => NULL), $leading = '[', $trailing = ']', $options = array()) {
+  $full = new stdClass();
+  $full->tokens = $full->values = array();
+  foreach ($types as $type => $object) {
+    $temp = token_get_values($type, $object, FALSE, $options);
+    $full->tokens = array_merge($full->tokens, $temp->tokens);
+    $full->values = array_merge($full->values, $temp->values);
+  }
+  return _token_logic_replace_recurse($original, $full->tokens, $full->values, $leading, $trailing);
+}
+
+function token_logic_replace($original, $type = 'global', $object = NULL, $leading = '[', $trailing = ']', $options = array()) {
+  $text = _token_logic_replace($original, $types, $leading, $trailing, $options);
+  return token_replace($text, $types, $leading, $trailing, $options);
+}
+
+function _token_logic_replace($original, $type = 'global', $object = NULL, $leading = '[', $trailing = ']', $options = array()) {
+  $full = token_get_values($type, $object, FALSE, $options);
+  return _token_logic_replace_recurse($original, $full->tokens, $full->values, $leading, $trailing);
+}
+
+function _token_logic_replace_recurse($original, $tokens, $values, $leading, $trailing) {
+  if(is_array($original)) {
+    foreach($original as $key => $val) {
+      $original[$key] = _token_logic_replace_recurse($val, $tokens, $values, $leading, $trailing);
+    }
+    return $original;
+  }
+  $return = '';
+  $if = $leading.'if'.$trailing;
+  $then = $leading.'then'.$trailing;
+  $equals = $leading.'equals'.$trailing;
+  $notequals = $leading.'notequals'.$trailing;
+  $endif = $leading.'endif'.$trailing;
+
+  $start = strpos($original, $if);
+  if ($start === FALSE ) {
+    // no if's there
+    return $original;
+  }
+  $equalsp = strpos($original, $equals, $start);
+  $thenp = strpos($original, $thenp, $start);
+  $end = strpos($original, $endif, $start) + strlen($endif);
+  $within = $start;
+  while ($within = strpos($original, $if, $within + strlen($if)) && $within < $end) {
+    //we have an [if] between our [if] and [endif], we need to grab more
+    $end = strpos($original, $endif, $end);
+    if($end === FALSE) {
+      //not enough [endif]s
+      return $original;
+    }
+    $end += strlen($endif);
+  }
+
+  //we now have one overarching if statement between $start and $end, including the tags themselves
+  $return = substr($original, 0, $start);
+
+  //evaluate logic
+  $evaluate = substr($original, $start+strlen($if), $end-$start-strlen($if)-strlen($endif));
+  $evaluate = explode($then, $evaluate, 2);
+
+  $arg = explode($equals, $evaluate[0]);
+  if (count($arg) == 2) {
+    if (_token_replace_tokens($arg[0], $tokens, $values, $leading, $trailing) == _token_replace_tokens($arg[1], $tokens, $values, $leading, $trailing)) {
+       $return .= _token_logic_replace_recurse($evaluate[1], $tokens, $values, $leading, $trailing);
+    }
+  } else {
+    $arg = explode($notequals, $evaluate[0]);
+    if (_token_replace_tokens($arg[0], $tokens, $values, $leading, $trailing) != _token_replace_tokens($arg[1], $tokens, $values, $leading, $trailing)) {
+       $return .= _token_logic_replace_recurse($evaluate[1], $tokens, $values, $leading, $trailing);
+    }
+  }
+  $return .= _token_logic_replace_recurse(substr($original, $end), $tokens, $values, $leading, $trailing);
+  return $return;
+}
+
+function token_logic_messaging($op, $arg1 = NULL, $arg2 = NULL, $arg3 = NULL, $arg4 = NULL) {
+  if ($op == 'tokens') {
+    $tokens = array();
+    $tokens[] = 'logic';
+    return $tokens;
+  }
+}

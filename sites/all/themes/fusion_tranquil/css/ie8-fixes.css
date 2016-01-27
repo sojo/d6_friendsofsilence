@@ -1,0 +1,14 @@
+/* $Id: ie8-fixes.css 6573 2010-02-25 01:29:06Z chris $ */
+
+/*Embedded Fonts
+-------------------------------------------------------------- */
+/*font-family: "QlassikMediumRegular";
+  font-weight: normal;
+  font-style: normal;
+
+@import url('../fonts/qlassik/ie-stylesheet.css');  */
+
+/* Primary menu */
+#primary-menu ul.menu li ul.menu li.last {
+  padding-bottom: 0;
+}
